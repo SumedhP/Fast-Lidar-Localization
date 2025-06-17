@@ -27,6 +27,7 @@ Develop a fast, modular, and extensible localization system that:
 
 ### State
 Particle:
+
 X, Y, Theta representing the position and orientation of the particle in the map.
 X is defined as positive upwards, Y is defined as positive to the right, and Theta is defined as positive counter-clockwise.
 (0, 0, 0) is the origin of the map, located in the bottom right corner.
@@ -34,13 +35,27 @@ X is defined as positive upwards, Y is defined as positive to the right, and The
 Each particle also has a weight, which is used to determine the likelihood of the particle being the true state of the robot.
 
 Lidar Ray:
+
 (Distance, Angle) representing the distance and angle of the LiDAR ray from the robot's position.
 
 Lidar Scan:
+
 A list of Lidar Rays representing a single scan from the LiDAR sensor.
 
 Occupancy Grid Map:
+
 A 2D grid representing the environment, where each cell can be occupied or free.
+
+Particle Distance Lookup Table:
+
+A precomputed table that maps for each position in the occupancy grid map, the expected distance to the nearest occupied cell. 
+This is used to speed up the likelihood calculation for each particle by avoiding real-time ray casting.
+
+This approach is inspired by the findings in:
+
+> **CDDT: Fast Approximate 2D Ray Casting for Accelerated Localization**  
+> Corey Walsh and Sertac Karaman. *arXiv preprint arXiv:1705.01167*, 2017.  
+> [https://arxiv.org/abs/1705.01167](https://arxiv.org/abs/1705.01167)
 
 ### Classes
 
