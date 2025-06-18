@@ -26,28 +26,23 @@ Develop a fast, modular, and extensible localization system that:
 ## Protocol
 
 ### State
-Particle:
-
+#### Particle:
 X, Y, Theta representing the position and orientation of the particle in the map.
 X is defined as positive upwards, Y is defined as positive to the right, and Theta is defined as positive counter-clockwise.
 (0, 0, 0) is the origin of the map, located in the bottom right corner.
 
 Each particle also has a weight, which is used to determine the likelihood of the particle being the true state of the robot.
 
-Lidar Ray:
-
+#### Lidar Ray:
 (Distance, Angle) representing the distance and angle of the LiDAR ray from the robot's position.
 
-Lidar Scan:
-
+#### Lidar Scan:
 A list of Lidar Rays representing a single scan from the LiDAR sensor.
 
-Occupancy Grid Map:
-
+#### Occupancy Grid Map:
 A 2D grid representing the environment, where each cell can be occupied or free.
 
-Particle Distance Lookup Table:
-
+#### Particle Distance Lookup Table:
 A precomputed table that maps for each position in the occupancy grid map, the expected distance to the nearest occupied cell. 
 This is used to speed up the likelihood calculation for each particle by avoiding real-time ray casting.
 
@@ -59,3 +54,9 @@ This approach is inspired by the findings in:
 
 ### Classes
 
+#### `ParticleFilter`
+- State: `particles`, `weights`, `map`, `lidar_distance_lookup_table`
+- Initialized with:
+  - `map`: Occupancy grid map
+  - `lidar_distance_lookup_table`: Precomputed distance lookup table
+  - `num_particles`: Number of particles to maintain
