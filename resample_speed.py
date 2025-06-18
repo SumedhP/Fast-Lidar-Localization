@@ -5,7 +5,7 @@ from src.filter.resample import numba_resample
 
 
 def test_speeds(func) -> None:
-    num_particles = [10**x for x in range(1, 7)]
+    num_particles = [1_000, 5_000, 10_000, 20_000, 1_000_000]
     for n in num_particles:
         weights = np.random.rand(n)
         weights /= np.sum(weights)  # Normalize weights
