@@ -3,16 +3,18 @@ from numba import njit
 from lidarpf.core.types import ParticleState
 
 
-@njit
+@njit(parallel=True)
 def apply_motion_model(
     particles: np.ndarray, delta: np.ndarray, noise_std: np.ndarray
 ) -> np.ndarray:
     """
     Propagate all particles using odometry delta and Gaussian noise.
+
     Args:
         particles: (N, 3) array of [x, y, theta] particles.
         delta: (3,) array of [dx, dy, dtheta] odometry.
         noise_std: (3,) array of stddev for [x, y, theta] noise.
+
     Returns:
         Updated (N, 3) array of particles.
     """
