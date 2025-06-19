@@ -2,6 +2,7 @@ from numba import njit
 import numpy as np
 import numpy.typing as npt
 
+
 @njit
 def numba_resample(weights: npt.NDArray[np.float32]) -> npt.NDArray[np.int32]:
     """
@@ -29,4 +30,4 @@ def numba_resample(weights: npt.NDArray[np.float32]) -> npt.NDArray[np.int32]:
             i += 1
         else:
             j += 1
-    return indexes 
+    return indexes

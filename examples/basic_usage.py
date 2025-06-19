@@ -1,6 +1,7 @@
 import numpy as np
 from lidarpf.filter.particle_filter import ParticleFilter
 
+
 def main():
     occupancy_grid = np.zeros((20, 20), dtype=bool)
     lookup_table = np.ones((20, 20, 16), dtype=np.float64)
@@ -14,7 +15,7 @@ def main():
     # Simulate LiDAR scan
     scan = np.ones((10, 2), dtype=np.float32)
     map_resolution = 1.0
-    sensor_params = {'sigma': 0.2, 'max_range': 10.0}
+    sensor_params = {"sigma": 0.2, "max_range": 10.0}
     pf.update(scan, map_resolution, sensor_params)
     print("Updated particle weights.")
     pf.resample()
@@ -22,5 +23,6 @@ def main():
     est = pf.estimate()
     print(f"Estimated state: x={est[0]:.2f}, y={est[1]:.2f}, theta={est[2]:.2f}")
 
+
 if __name__ == "__main__":
-    main() 
+    main()

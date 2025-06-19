@@ -1,8 +1,15 @@
 import numpy as np
 from numba import njit
 
+
 @njit
-def compute_likelihoods(particles: np.ndarray, scan: np.ndarray, lookup_table: np.ndarray, map_resolution: float, sensor_params: dict) -> np.ndarray:
+def compute_likelihoods(
+    particles: np.ndarray,
+    scan: np.ndarray,
+    lookup_table: np.ndarray,
+    map_resolution: float,
+    sensor_params: dict,
+) -> np.ndarray:
     """
     Compute likelihoods for all particles given a LiDAR scan.
     Args:
@@ -17,8 +24,8 @@ def compute_likelihoods(particles: np.ndarray, scan: np.ndarray, lookup_table: n
     N = particles.shape[0]
     M = scan.shape[0]
     H, W, A = lookup_table.shape
-    sigma = sensor_params.get('sigma', 0.2)
-    max_range = sensor_params.get('max_range', 10.0)
+    sigma = sensor_params.get("sigma", 0.2)
+    max_range = sensor_params.get("max_range", 10.0)
     num_angles = A
     likelihoods = np.ones(N, dtype=np.float32)
     for i in range(N):
@@ -43,4 +50,4 @@ def compute_likelihoods(particles: np.ndarray, scan: np.ndarray, lookup_table: n
             log_prob = -0.5 * (error / sigma) ** 2
             total_log_prob += log_prob
         likelihoods[i] = np.exp(total_log_prob)
-    return likelihoods 
+    return likelihoods

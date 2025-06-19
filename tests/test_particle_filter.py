@@ -3,9 +3,11 @@ import pytest
 from lidarpf.filter.particle_filter import ParticleFilter
 from lidarpf.core.types import ParticleState
 
+
 class DummyLookupTable:
     def __getitem__(self, idx):
         return 1.0
+
 
 def test_particle_filter_initialization():
     occupancy_grid = np.zeros((10, 10), dtype=bool)
@@ -21,6 +23,7 @@ def test_particle_filter_initialization():
     assert np.all(pf.particles[:, ParticleState.Y] == pf.particles[:, 1])
     assert np.all(pf.particles[:, ParticleState.THETA] == pf.particles[:, 2])
 
+
 def test_particle_filter_workflow():
     occupancy_grid = np.zeros((10, 10), dtype=bool)
     lookup_table = np.ones((10, 10, 8), dtype=np.float64)
@@ -32,7 +35,7 @@ def test_particle_filter_workflow():
     # Update step
     scan = np.ones((5, 2), dtype=np.float32)
     map_resolution = 1.0
-    sensor_params = {'sigma': 0.2, 'max_range': 10.0}
+    sensor_params = {"sigma": 0.2, "max_range": 10.0}
     pf.update(scan, map_resolution, sensor_params)
     assert np.isclose(np.sum(pf.weights), 1.0)
     # Resample step
@@ -41,4 +44,4 @@ def test_particle_filter_workflow():
     assert np.isclose(np.sum(pf.weights), 1.0)
     # Estimate
     est = pf.estimate()
-    assert est.shape == (3,) 
+    assert est.shape == (3,)

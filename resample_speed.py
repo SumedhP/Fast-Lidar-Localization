@@ -1,6 +1,6 @@
 import numpy as np
 from timeit import timeit
-from src.filter.resample import numba_resample
+from lidarpf.filter.resample import numba_resample
 
 
 def test_speeds(func) -> None:
