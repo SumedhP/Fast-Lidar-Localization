@@ -18,6 +18,13 @@ def apply_motion_model(
     Returns:
         Updated (N, 3) array of particles.
     """
+    if len(particles.shape) != 2 or particles.shape[1] != 3:
+        raise ValueError(f"Particles must be a (N, 3) array. Received shape: {particles.shape}")
+    if len(delta) != 3:
+        raise ValueError(f"Delta must be a (3,) array. Received shape: {delta.shape}")
+    if len(noise_std) != 3:
+        raise ValueError(f"Noise std must be a (3,) array. Received shape: {noise_std.shape}")
+
     N = particles.shape[0]
 
     dx = delta[ParticleState.X]
@@ -33,8 +40,6 @@ def apply_motion_model(
     particles[:, ParticleState.THETA] += dtheta + np.random.normal(0, theta_std, N)
 
     # Ensure theta is within [0, 2*pi]
-    particles[:, ParticleState.THETA] = np.mod(
-        particles[:, ParticleState.THETA], 2 * np.pi
-    )
+    particles[:, ParticleState.THETA] = np.mod(particles[:, ParticleState.THETA], 2 * np.pi)
 
     return particles

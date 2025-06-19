@@ -13,10 +13,7 @@ def _is_occupied(occupancy_grid: npt.NDArray[np.bool_], x: int, y: int) -> bool:
     assert occupancy_grid.ndim == 2, "Occupancy grid must be a 2D array."
     if x < 0 or y < 0:
         return True
-    if (
-        x >= occupancy_grid.shape[ParticleState.X]
-        or y >= occupancy_grid.shape[ParticleState.Y]
-    ):
+    if x >= occupancy_grid.shape[ParticleState.X] or y >= occupancy_grid.shape[ParticleState.Y]:
         return True
     return occupancy_grid[x, y]
 
@@ -59,9 +56,7 @@ def compute_lookup_table(
         for y in range(width):
             for angle in range(num_angles):
                 theta = angle * (2 * np.pi / num_angles)
-                lookup_table[x, y, angle] = _bresenhams_ray_cast(
-                    x, y, theta, occupancy_grid
-                )
+                lookup_table[x, y, angle] = _bresenhams_ray_cast(x, y, theta, occupancy_grid)
     return lookup_table
 
 

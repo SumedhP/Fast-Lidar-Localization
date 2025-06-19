@@ -39,9 +39,7 @@ class ParticleFilter:
         self.particles[:, ParticleState.X] = poses[:, 0]
         self.particles[:, ParticleState.Y] = poses[:, 1]
         self.particles[:, ParticleState.THETA] = thetas
-        self.weights = (
-            np.ones(self.num_particles, dtype=np.float32) / self.num_particles
-        )
+        self.weights = np.ones(self.num_particles, dtype=np.float32) / self.num_particles
 
     def predict(self, odometry_delta, noise_std):
         """Propagate particles using the motion model."""
@@ -59,9 +57,7 @@ class ParticleFilter:
         """Resample particles based on weights."""
         indices = numba_resample(self.weights.astype(np.float32))
         self.particles = self.particles[indices]
-        self.weights = (
-            np.ones(self.num_particles, dtype=np.float32) / self.num_particles
-        )
+        self.weights = np.ones(self.num_particles, dtype=np.float32) / self.num_particles
 
     def estimate(self):
         """Return the estimated state (weighted mean)."""
