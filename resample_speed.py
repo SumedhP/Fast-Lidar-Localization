@@ -1,4 +1,3 @@
-from filterpy.monte_carlo.resampling import systematic_resample
 import numpy as np
 from timeit import timeit
 from src.filter.resample import numba_resample
@@ -16,10 +15,7 @@ def test_speeds(func) -> None:
 
 
 if __name__ == "__main__":
-    print("Testing systematic resampling speed...")
-    test_speeds(systematic_resample)
-
-    print("\nTesting numba resampling speed...")
+    print("\nTesting Resampling speed...")
     # Warmup call
     numba_resample(np.random.rand(1_000).astype(np.float32))
     test_speeds(numba_resample)
