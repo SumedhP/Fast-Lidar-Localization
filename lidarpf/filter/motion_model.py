@@ -1,5 +1,6 @@
 import numpy as np
 from numba import njit
+from lidarpf.core.types import ParticleState
 
 
 @njit
@@ -16,21 +17,22 @@ def apply_motion_model(
         Updated (N, 3) array of particles.
     """
     N = particles.shape[0]
-    updated = np.empty_like(particles)
-    for i in range(N):
-        dx = delta[0] + np.random.normal(0, noise_std[0])
-        dy = delta[1] + np.random.normal(0, noise_std[1])
-        dtheta = delta[2] + np.random.normal(0, noise_std[2])
-        # Update state
-        updated[i, 0] = (
-            particles[i, 0]
-            + dx * np.cos(particles[i, 2])
-            - dy * np.sin(particles[i, 2])
-        )
-        updated[i, 1] = (
-            particles[i, 1]
-            + dx * np.sin(particles[i, 2])
-            + dy * np.cos(particles[i, 2])
-        )
-        updated[i, 2] = particles[i, 2] + dtheta
-    return updated
+
+    dx = delta[ParticleState.X]
+    dy = delta[ParticleState.Y]
+    dtheta = delta[ParticleState.THETA]
+
+    x_std = noise_std[ParticleState.X]
+    y_std = noise_std[ParticleState.Y]
+    theta_std = noise_std[ParticleState.THETA]
+
+    particles[:, ParticleState.X] += dx + np.random.normal(0, x_std, N)
+    particles[:, ParticleState.Y] += dy + np.random.normal(0, y_std, N)
+    particles[:, ParticleState.THETA] += dtheta + np.random.normal(0, theta_std, N)
+
+    # Ensure theta is within [0, 2*pi]
+    particles[:, ParticleState.THETA] = np.mod(
+        particles[:, ParticleState.THETA], 2 * np.pi
+    )
+
+    return particles
