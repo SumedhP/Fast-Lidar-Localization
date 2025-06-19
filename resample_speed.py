@@ -5,7 +5,7 @@ from src.filter.resample import numba_resample
 
 
 def test_speeds(func) -> None:
-    num_particles = [1_000, 5_000, 10_000, 20_000, 1_000_000]
+    num_particles = [100, 1_000, 5_000, 10_000, 20_000, 1_000_000]
     for n in num_particles:
         weights = np.random.rand(n)
         weights /= np.sum(weights)  # Normalize weights
@@ -21,5 +21,5 @@ if __name__ == "__main__":
 
     print("\nTesting numba resampling speed...")
     # Warmup call
-    numba_resample(np.random.rand(10).astype(np.float32))
+    numba_resample(np.random.rand(1_000).astype(np.float32))
     test_speeds(numba_resample)
