@@ -4,7 +4,7 @@ import numpy.typing as npt
 
 
 @njit
-def numba_resample(weights: npt.NDArray[np.float32]) -> npt.NDArray[np.int32]:
+def resample(weights: npt.NDArray[np.float32]) -> npt.NDArray[np.int32]:
     """
     Systematic resampling algorithm based on FilterPy implementation.
 
