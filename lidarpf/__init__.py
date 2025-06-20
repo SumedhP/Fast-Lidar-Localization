@@ -10,12 +10,12 @@ __author__ = "Your Name"
 __email__ = "your.email@example.com"
 
 from .particle_filter import ParticleFilter
-from .types import ParticleState, LidarScan, OccupancyGrid, LidarErrorTable
+from .types import LidarErrorTable, LidarScan, OccupancyGrid, ParticleState
 
 __all__ = [
     "ParticleFilter",
-    "ParticleState", 
+    "ParticleState",
     "LidarScan",
     "OccupancyGrid",
     "LidarErrorTable",
-] 
+]

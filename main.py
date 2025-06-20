@@ -14,7 +14,7 @@ def main():
     print("=====================")
     print("Running basic usage example...")
     print()
-    
+
     try:
         run_example()
     except Exception as e:

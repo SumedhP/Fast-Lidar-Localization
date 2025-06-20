@@ -6,26 +6,27 @@ sensor model, and resampling to provide a complete particle filter implementatio
 for 2D LiDAR-based robot localization.
 """
 
+from typing import Optional, Tuple
+
 import numpy as np
 import numpy.typing as npt
-from typing import Tuple, Optional
 from numba import njit
 
 from .resample import resample
-from .types import ParticleArray, WeightArray, OccupancyGridArray, LidarErrorArray
+from .types import LidarErrorArray, OccupancyGridArray, ParticleArray, WeightArray
 
 
 @njit
 def _update_particles_motion(
     particles: ParticleArray,
     delta_x: float,
-    delta_y: float, 
+    delta_y: float,
     delta_theta: float,
     x_std: float,
     y_std: float,
     theta_std: float,
     width: float,
-    height: float
+    height: float,
 ) -> ParticleArray:
     N = len(particles)
     updated_particles = particles.copy()
@@ -54,7 +55,7 @@ def _compute_particle_likelihoods(
     error_table: LidarErrorArray,
     lut_scalar: float,
     error_scalar: float,
-    max_range: float
+    max_range: float,
 ) -> WeightArray:
     N = len(particles)
     num_scans = len(distances)
@@ -87,10 +88,10 @@ def _compute_particle_likelihoods(
 class ParticleFilter:
     """
     High-performance LiDAR particle filter for robot localization.
-    
+
     This class implements a complete particle filter for 2D LiDAR-based
     robot localization using Numba-optimized components for performance.
-    
+
     Attributes:
         num_particles: Number of particles in the filter
         particles: Current particle states (N, 3) array [x, y, theta]
@@ -103,7 +104,7 @@ class ParticleFilter:
         width: Map width in meters
         height: Map height in meters
     """
-    
+
     def __init__(
         self,
         occupancy_grid: OccupancyGridArray,
@@ -113,11 +114,11 @@ class ParticleFilter:
         max_range: float,
         num_particles: int,
         width: float,
-        height: float
+        height: float,
     ) -> None:
         """
         Initialize the particle filter.
-        
+
         Args:
             occupancy_grid: (H, W, A) occupancy grid lookup table
             error_table: Array of LiDAR error probabilities
@@ -138,18 +139,18 @@ class ParticleFilter:
         self.height = height
         self.particles: Optional[ParticleArray] = None
         self.weights: Optional[WeightArray] = None
-    
+
     def initialize(
         self,
         start_x: float,
         start_y: float,
         start_theta: float,
         position_std: float,
-        angle_std: float
+        angle_std: float,
     ) -> None:
         """
         Initialize particles with uniform distribution around starting pose.
-        
+
         Args:
             start_x: Starting x position in meters
             start_y: Starting y position in meters
@@ -166,7 +167,7 @@ class ParticleFilter:
         self.particles[:, 1] = np.clip(self.particles[:, 1], 0, self.height - 1e-6)
         self.particles[:, 2] = self.particles[:, 2] % (2.0 * np.pi)
         self.weights = np.full(self.num_particles, 1.0 / self.num_particles, dtype=np.float32)
-    
+
     def odometry_update(
         self,
         delta_x: float,
@@ -174,11 +175,11 @@ class ParticleFilter:
         delta_theta: float,
         x_std: float,
         y_std: float,
-        theta_std: float
+        theta_std: float,
     ) -> None:
         """
         Update particles based on odometry with noise.
-        
+
         Args:
             delta_x: Change in x position in world frame (meters)
             delta_y: Change in y position in world frame (meters)
@@ -190,18 +191,23 @@ class ParticleFilter:
         if self.particles is None or self.weights is None:
             raise ValueError("Particles must be initialized before odometry update")
         self.particles = _update_particles_motion(
-            self.particles, delta_x, delta_y, delta_theta,
-            x_std, y_std, theta_std, self.width, self.height
+            self.particles,
+            delta_x,
+            delta_y,
+            delta_theta,
+            x_std,
+            y_std,
+            theta_std,
+            self.width,
+            self.height,
         )
-    
+
     def lidar_update(
-        self,
-        distances: npt.NDArray[np.float32],
-        angles: npt.NDArray[np.float32]
+        self, distances: npt.NDArray[np.float32], angles: npt.NDArray[np.float32]
     ) -> None:
         """
         Update particle weights based on LiDAR measurements.
-        
+
         Args:
             distances: Array of measured distances in meters
             angles: Array of measured angles in radians
@@ -209,8 +215,14 @@ class ParticleFilter:
         if self.particles is None or self.weights is None:
             raise ValueError("Particles must be initialized before LiDAR update")
         likelihoods = _compute_particle_likelihoods(
-            self.particles, distances, angles, self.occupancy_grid,
-            self.error_table, self.lut_scalar, self.error_scalar, self.max_range
+            self.particles,
+            distances,
+            angles,
+            self.occupancy_grid,
+            self.error_table,
+            self.lut_scalar,
+            self.error_scalar,
+            self.max_range,
         )
         self.weights = self.weights * likelihoods
         weight_sum = np.sum(self.weights)
@@ -218,7 +230,7 @@ class ParticleFilter:
             self.weights = self.weights / weight_sum
         else:
             self.weights = np.full(self.num_particles, 1.0 / self.num_particles, dtype=np.float32)
-    
+
     def resample_particles(self) -> None:
         """
         Resample particles based on their weights using systematic resampling.
@@ -228,11 +240,11 @@ class ParticleFilter:
         indices = resample(self.weights)
         self.particles = self.particles[indices].copy()
         self.weights = np.full(self.num_particles, 1.0 / self.num_particles, dtype=np.float32)
-    
+
     def get_expected_pose(self) -> Tuple[float, float, float]:
         """
         Get the expected robot pose as weighted mean of particles.
-        
+
         Returns:
             Tuple of (x, y, theta) representing expected pose
         """
@@ -246,14 +258,14 @@ class ParticleFilter:
         if expected_theta < 0:
             expected_theta += 2.0 * np.pi
         return expected_x, expected_y, expected_theta
-    
+
     def get_particle_state(self) -> Tuple[ParticleArray, WeightArray]:
         """
         Get current particle states and weights.
-        
+
         Returns:
             Tuple of (particles, weights)
         """
         if self.particles is None or self.weights is None:
             raise ValueError("Particles are not initialized")
-        return self.particles.copy(), self.weights.copy() 
+        return self.particles.copy(), self.weights.copy()
