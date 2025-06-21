@@ -1,7 +1,6 @@
 import numpy as np
 import numpy.typing as npt
 
-# Type aliases for performance-critical arrays
 ParticleArray = npt.NDArray[np.float32]  # (N, 2) array for N particles [x, y]
 WeightArray = npt.NDArray[np.float32]  # (N,) array for N particle weights
 OccupancyGridArray = npt.NDArray[np.float32]  # (H, W, A) occupancy grid

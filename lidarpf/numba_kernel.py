@@ -70,11 +70,12 @@ def chassis_odom_update_compiled(
 @njit(parallel=True, cache=True)
 def scan_update_compiled(
     particles: ParticleArray,
+    weights: WeightArray,
     scan: LidarScanArray,
     occupancy_grid: OccupancyGridArray,
     occupancy_grid_index_scalar: float,
     lidar_std_dev: float,
-) -> WeightArray:
+) -> None:
     """
     Update particle weights based on LiDAR scan measurements.
 
@@ -106,8 +107,6 @@ def scan_update_compiled(
     N = particles.shape[0]
     num_beams = scan.shape[0]
 
-    likelihoods = np.ones(N, dtype=np.float32)
-
     # Iterate over each particle and compute the likelihood based on the scan
     for i in prange(N):  # type: ignore[not-iterable]
         particle = particles[i]
@@ -129,12 +128,10 @@ def scan_update_compiled(
             diff = distance - expected_distance
             likelihood = np.exp(-0.5 * (diff**2) / (lidar_std_dev**2))
 
-            likelihoods[i] *= likelihood
+            weights[i] *= likelihood
 
     # Normalize likelihoods
-    likelihoods = likelihoods / (np.sum(likelihoods) + 1e-10)
-
-    return likelihoods
+    weights = weights / (np.sum(weights) + 1e-10)
 
 
 @njit(parallel=True, cache=True)
@@ -186,19 +183,21 @@ def chassis_odom_update(
 
 def scan_update(
     particles: ParticleArray,
+    weights: WeightArray,
     scan: LidarScanArray,
     occupancy_grid: OccupancyGridArray,
     occupancy_grid_index_scalar: float,
     lidar_std_dev: float,
-) -> WeightArray:
+) -> None:
     """
     Update particle weights based on LiDAR scan measurements.
     Read the docstring of `scan_update_compiled` for details.
     """
     validate_particle_array(particles)
+    validate_weight_array(weights)
     validate_lidar_scan(scan)
     validate_occupancy_grid(occupancy_grid)
-    return scan_update_compiled(particles, scan, occupancy_grid, occupancy_grid_index_scalar, lidar_std_dev)
+    scan_update_compiled(particles, weights, scan, occupancy_grid, occupancy_grid_index_scalar, lidar_std_dev)
 
 
 def resample(weights: WeightArray) -> npt.NDArray[np.int32]:
