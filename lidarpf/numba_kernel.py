@@ -11,9 +11,7 @@ from .types import (
     OdomNoiseArray,
     X,
     Y,
-    THETA,
 )
-
 
 @njit(parallel=True, cache=True)
 def chassis_odom_update(
@@ -31,11 +29,11 @@ def chassis_odom_update(
     specified map boundaries, and angles are normalized to [0, 2π).
 
     Args:
-        particles: Array of shape (N, 3) containing particle states [x, y, theta].
+        particles: Array of shape (N, 2) containing particle states [x, y].
                   Modified in-place.
-        odometry: Array of shape (3,) containing odometry deltas [dx, dy, dtheta].
-        noise: Array of shape (3,) containing standard deviations for Gaussian noise
-               [std_x, std_y, std_theta].
+        odometry: Array of shape (2,) containing odometry deltas [dx, dy].
+        noise: Array of shape (2,) containing standard deviations for Gaussian noise
+               [std_x, std_y].
         max_height: Maximum x-coordinate (height) of the map boundary.
         max_width: Maximum y-coordinate (width) of the map boundary.
 
@@ -48,19 +46,15 @@ def chassis_odom_update(
 
     x_delta = odometry[X]
     y_delta = odometry[Y]
-    theta_delta = odometry[THETA]
 
     x_std = noise[X]
     y_std = noise[Y]
-    theta_std = noise[THETA]
 
     particles[:, X] += x_delta + np.random.normal(0, x_std, N)
     particles[:, Y] += y_delta + np.random.normal(0, y_std, N)
-    particles[:, THETA] += theta_delta + np.random.normal(0, theta_std, N)
 
     np.clip(particles[:, X], 0, max_height, out=particles[:, X])
     np.clip(particles[:, Y], 0, max_width, out=particles[:, Y])
-    particles[:, THETA] = np.fabs(np.fmod(particles[:, THETA], 2 * np.pi))
 
 
 @njit(parallel=True, cache=True)
@@ -79,7 +73,7 @@ def scan_update(
     the expected distances with the measured distances.
 
     Args:
-        particles: Array of shape (N, 3) containing particle states [x, y, theta].
+        particles: Array of shape (N, 2) containing particle states [x, y].
         scan: Array of shape (num_beams, 2) containing LiDAR measurements [distance, angle].
               Distances should be in the same units as the occupancy grid.
         occupancy_grid: 3D array of shape (height, width, angle_bins) containing
@@ -99,7 +93,6 @@ def scan_update(
         - Grid indices are clipped to valid bounds to handle edge cases
     """
     # Note for a developer: Vectorizing this just made it slower with Numba.
-
     N = particles.shape[0]
     num_beams = scan.shape[0]
 
@@ -108,7 +101,7 @@ def scan_update(
     # Iterate over each particle and compute the likelihood based on the scan
     for i in prange(N):  # type: ignore[not-iterable]
         particle = particles[i]
-        x, y, theta = particle[X], particle[Y], particle[THETA]
+        x, y = particle[X], particle[Y]
 
         x_idx = int(x * occupancy_grid_index_scalar)
         y_idx = int(y * occupancy_grid_index_scalar)
@@ -119,7 +112,6 @@ def scan_update(
         for j in range(num_beams):
             distance, angle = scan[j]
 
-            angle += theta
             angle_idx = int(angle / (2 * np.pi) * occupancy_grid.shape[2])
             angle_idx = max(0, min(angle_idx, occupancy_grid.shape[2] - 1))
 
