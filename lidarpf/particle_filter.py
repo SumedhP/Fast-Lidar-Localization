@@ -202,9 +202,7 @@ class ParticleFilter:
             self.height,
         )
 
-    def lidar_update(
-        self, distances: npt.NDArray[np.float32], angles: npt.NDArray[np.float32]
-    ) -> None:
+    def lidar_update(self, distances: npt.NDArray[np.float32], angles: npt.NDArray[np.float32]) -> None:
         """
         Update particle weights based on LiDAR measurements.
 
