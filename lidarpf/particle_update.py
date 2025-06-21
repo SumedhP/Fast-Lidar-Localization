@@ -243,6 +243,75 @@ def scan_update_numba(
             likelihoods[i] *= likelihood
 
     # Normalize likelihoods
-    likelihoods = likelihoods / np.sum(likelihoods)
+    likelihoods = likelihoods / np.sum(likelihoods) + 1e-10
+
+    return likelihoods
+
+
+@njit(parallel=True)
+def scan_update_numba_vectorized(
+    particles: ParticleArray,
+    scan: LidarScanArray,
+    occupancy_grid: OccupancyGridArray,
+    occupancy_grid_index_scalar: float,
+    lidar_std_dev: float,
+) -> WeightArray:
+    """
+    Vectorized update of particle weights based on LiDAR scan measurements.
+
+    This function computes the likelihood of each particle given the current LiDAR scan
+    using vectorized operations for improved performance.
+
+    Args:
+        particles: Array of shape (N, 3) containing particle states [x, y, theta].
+        scan: Array of shape (num_beams, 2) containing LiDAR measurements [distance, angle].
+        occupancy_grid: 3D array of shape (height, width, angle_bins) containing
+                       expected distances for each grid cell and angle bin.
+        occupancy_grid_index_scalar: Scaling factor to convert particle coordinates
+                                    to grid indices.
+        lidar_std_dev: Standard deviation of LiDAR distance measurements.
+
+    Returns:
+        Array of shape (N,) containing normalized particle weights.
+    """
+    N = particles.shape[0]
+
+    likelihoods = np.ones(N, dtype=np.float32)
+
+    xs = (particles[:, X] * occupancy_grid_index_scalar).astype(np.int32)
+    ys = (particles[:, Y] * occupancy_grid_index_scalar).astype(np.int32)
+    x_idxs = np.clip(xs, 0, occupancy_grid.shape[0] - 1)
+    y_idxs = np.clip(ys, 0, occupancy_grid.shape[1] - 1)
+    thetas = particles[:, THETA]
+    theta_offsets = thetas[:, np.newaxis] + scan[:, 1]
+    theta_offsets = np.fabs(np.fmod(theta_offsets, 2 * np.pi))
+
+
+    # Iterate over each particle and compute the likelihood based on the scan
+    for i in prange(N):  # type: ignore[not-iterable]
+        x_idx = x_idxs[i]
+        y_idx = y_idxs[i]
+        theta = particles[i][THETA]
+
+        # Vectorized scan processing for this particle
+        distances = scan[:, 0]  # All beam distances at once
+        angles = scan[:, 1] + theta  # Add particle orientation to all beam angles
+
+        # Convert all angles to grid indices at once
+        angle_indices = (angles / (2 * np.pi) * occupancy_grid.shape[2]).astype(np.int32)
+        angle_indices = np.clip(angle_indices, 0, occupancy_grid.shape[2] - 1)
+
+        # Vectorized lookup of expected distances for all beams
+        expected_distances = occupancy_grid[x_idx, y_idx, angle_indices]
+
+        # Vectorized likelihood computation for all beams
+        diffs = distances - expected_distances
+        likelihoods_per_beam = np.exp(-0.5 * (diffs**2) / (lidar_std_dev**2))
+
+        # Product of all beam likelihoods for this particle
+        likelihoods[i] = np.prod(likelihoods_per_beam)
+
+    # Normalize likelihoods
+    likelihoods = likelihoods / np.sum(likelihoods) + 1e-10
 
     return likelihoods
