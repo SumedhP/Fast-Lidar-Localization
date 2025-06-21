@@ -7,9 +7,8 @@ from .types import (
     OdomNoiseArray,
 )
 import numpy as np
-from numba import njit
 
-@njit(cache=True)
+
 def validate_particle_array(particles: ParticleArray) -> None:
     """
     Validate the particle array for correct shape and data type.
@@ -25,9 +24,9 @@ def validate_particle_array(particles: ParticleArray) -> None:
     if particles.dtype != np.float32:
         raise ValueError("Particles must have dtype float32.")
     if particles.ndim != 2 or particles.shape[1] != 2:
-        raise ValueError("Particles must be a 2D array with shape (N, 2).")
+        raise ValueError(f"Particles must be a 2D array with shape (N, 2). Input shape: {particles.shape}")
 
-@njit(cache=True)
+
 def validate_weight_array(weights: WeightArray) -> None:
     """
     Validate the weight array for correct shape and data type.
@@ -43,9 +42,9 @@ def validate_weight_array(weights: WeightArray) -> None:
     if weights.dtype != np.float32:
         raise ValueError("Weights must have dtype float32.")
     if weights.ndim != 1:
-        raise ValueError("Weights must be a 1D array.")
+        raise ValueError(f"Weights must be a 1D array. Input shape: {weights.shape}")
 
-@njit(cache=True)
+
 def validate_occupancy_grid(grid: OccupancyGridArray) -> None:
     """
     Validate the occupancy grid for correct shape and data type.
@@ -61,9 +60,9 @@ def validate_occupancy_grid(grid: OccupancyGridArray) -> None:
     if grid.dtype != np.float32:
         raise ValueError("Occupancy grid must have dtype float32.")
     if grid.ndim != 3:
-        raise ValueError("Occupancy grid must be a 3D array with shape (H, W, A).")
+        raise ValueError(f"Occupancy grid must be a 3D array with shape (H, W, A). Input shape: {grid.shape}")
 
-@njit(cache=True)
+
 def validate_lidar_scan(scan: LidarScanArray) -> None:
     """
     Validate the LiDAR scan for correct shape and data type.
@@ -79,9 +78,9 @@ def validate_lidar_scan(scan: LidarScanArray) -> None:
     if scan.dtype != np.float32:
         raise ValueError("LiDAR scan must have dtype float32.")
     if scan.ndim != 2 or scan.shape[1] != 2:
-        raise ValueError("LiDAR scan must be a 2D array with shape (N, 2).")
+        raise ValueError(f"LiDAR scan must be a 2D array with shape (N, 2). Input shape: {scan.shape}")
 
-@njit(cache=True)
+
 def validate_odometry_update(update: OdomUpdateArray) -> None:
     """
     Validate the odometry update for correct shape and data type.
@@ -96,11 +95,10 @@ def validate_odometry_update(update: OdomUpdateArray) -> None:
         raise ValueError("Odometry update must be a numpy array of type float32.")
     if update.dtype != np.float32:
         raise ValueError("Odometry update must have dtype float32.")
-    if update.ndim != 1 or update.shape[0] != 3:
-        raise ValueError("Odometry update must be a 1D array with shape (3,).")
+    if update.ndim != 1 or update.shape[0] != 2:
+        raise ValueError(f"Odometry update must be a 1D array with shape (2,). Input shape: {update.shape}")
 
 
-@njit(cache=True)
 def validate_odometry_noise(noise: OdomNoiseArray) -> None:
     """
     Validate the odometry noise for correct shape and data type.
@@ -116,5 +114,4 @@ def validate_odometry_noise(noise: OdomNoiseArray) -> None:
     if noise.dtype != np.float32:
         raise ValueError("Odometry noise must have dtype float32.")
     if noise.ndim != 1 or noise.shape[0] != 2:
-        raise ValueError("Odometry noise must be a 1D array with shape (2,).")
-
+        raise ValueError(f"Odometry noise must be a 1D array with shape (2,). Input shape: {noise.shape}")

@@ -2,6 +2,15 @@ import numpy as np
 import numpy.typing as npt
 from numba import njit, prange
 
+from lidarpf.validation import (
+    validate_lidar_scan,
+    validate_occupancy_grid,
+    validate_odometry_noise,
+    validate_odometry_update,
+    validate_particle_array,
+    validate_weight_array,
+)
+
 from .types import (
     ParticleArray,
     WeightArray,
@@ -13,8 +22,9 @@ from .types import (
     Y,
 )
 
+
 @njit(parallel=True, cache=True)
-def chassis_odom_update(
+def chassis_odom_update_compiled(
     particles: ParticleArray,
     odometry: OdomUpdateArray,
     noise: OdomNoiseArray,
@@ -58,7 +68,7 @@ def chassis_odom_update(
 
 
 @njit(parallel=True, cache=True)
-def scan_update(
+def scan_update_compiled(
     particles: ParticleArray,
     scan: LidarScanArray,
     occupancy_grid: OccupancyGridArray,
@@ -128,7 +138,7 @@ def scan_update(
 
 
 @njit(parallel=True, cache=True)
-def resample(weights: WeightArray) -> npt.NDArray[np.int32]:
+def resample_compiled(weights: WeightArray) -> npt.NDArray[np.int32]:
     """
     Systematic resampling algorithm based on FilterPy implementation.
 
@@ -155,3 +165,46 @@ def resample(weights: WeightArray) -> npt.NDArray[np.int32]:
         else:
             j += 1
     return indexes
+
+
+def chassis_odom_update(
+    particles: ParticleArray,
+    odometry: OdomUpdateArray,
+    noise: OdomNoiseArray,
+    max_height: float,
+    max_width: float,
+) -> None:
+    """
+    Update particle positions using odometry measurements with noise.
+    Read the docstring of `chassis_odom_update_compiled` for details.
+    """
+    validate_particle_array(particles)
+    validate_odometry_update(odometry)
+    validate_odometry_noise(noise)
+    chassis_odom_update_compiled(particles, odometry, noise, max_height, max_width)
+
+
+def scan_update(
+    particles: ParticleArray,
+    scan: LidarScanArray,
+    occupancy_grid: OccupancyGridArray,
+    occupancy_grid_index_scalar: float,
+    lidar_std_dev: float,
+) -> WeightArray:
+    """
+    Update particle weights based on LiDAR scan measurements.
+    Read the docstring of `scan_update_compiled` for details.
+    """
+    validate_particle_array(particles)
+    validate_lidar_scan(scan)
+    validate_occupancy_grid(occupancy_grid)
+    return scan_update_compiled(particles, scan, occupancy_grid, occupancy_grid_index_scalar, lidar_std_dev)
+
+
+def resample(weights: WeightArray) -> npt.NDArray[np.int32]:
+    """
+    Resample particles based on their weights using systematic resampling.
+    Read the docstring of `resample_compiled` for details.
+    """
+    validate_weight_array(weights)
+    return resample_compiled(weights)

@@ -1,4 +1,8 @@
-from lidarpf.numba_kernel import chassis_odom_update, scan_update, resample
+from lidarpf.numba_kernel import (
+    chassis_odom_update,
+    scan_update,
+    resample,
+)
 
 import numpy as np
 from timeit import timeit
@@ -8,9 +12,9 @@ PARTICLE_SIZES = [100, 100, 1_000, 5_000, 10_000, 20_000, 100_000]
 
 def test_chassis_odom_update(func, print_results=True):
     for size in PARTICLE_SIZES:
-        particles = np.random.rand(size, 3).astype(np.float32) * 100
-        odometry = np.array([1.0, 0.5, 0.1], dtype=np.float32)
-        noise = np.array([0.1, 0.1, 0.01], dtype=np.float32)
+        particles = np.random.rand(size, 2).astype(np.float32) * 100.0
+        odometry = np.array([1.0, 0.5], dtype=np.float32)
+        noise = np.array([0.1, 0.1], dtype=np.float32)
         max_height = 100.0
         max_width = 100.0
         ITERATIONS = 10000
@@ -23,7 +27,7 @@ def test_chassis_odom_update(func, print_results=True):
 
 def test_scan_update(func, print_results=True):
     for size in PARTICLE_SIZES:
-        particles = np.random.rand(size, 3).astype(np.float32) * 100
+        particles = np.random.rand(size, 2).astype(np.float32) * 100.0
         scan = np.random.rand(12, 2).astype(np.float32) * 10
         occupancy_grid = np.random.rand(1200, 800, 120).astype(np.float32)
         ITERATIONS = 10000
