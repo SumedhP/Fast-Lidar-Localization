@@ -18,7 +18,7 @@ def test_chassis_odom_update(func, print_results=True):
             timeit(lambda: func(particles, odometry, noise, max_height, max_width), number=ITERATIONS) / ITERATIONS
         ) * 1000
         if print_results:
-            print(f"{func.__name__} with {size} particles took {time_taken:.6f} milliseconds")
+            print(f"{func.__name__} with {size} particles took {time_taken:.3f} milliseconds")
 
 
 def test_scan_update(func, print_results=True):
@@ -29,7 +29,7 @@ def test_scan_update(func, print_results=True):
         ITERATIONS = 1000
         time_taken = timeit(lambda: func(particles, scan, occupancy_grid, 100, 5), number=ITERATIONS) / ITERATIONS * 1000
         if print_results:
-            print(f"{func.__name__} with {size} particles took {time_taken:.6f} milliseconds")
+            print(f"{func.__name__} with {size} particles took {time_taken:.3f} milliseconds")
 
 
 def test_resample(func, print_results=True):
@@ -38,7 +38,7 @@ def test_resample(func, print_results=True):
         ITERATIONS = 1000
         time_taken = timeit(lambda: func(weights), number=ITERATIONS) / ITERATIONS * 1000
         if print_results:
-            print(f"{func.__name__} with {size} particles took {time_taken:.6f} milliseconds")
+            print(f"{func.__name__} with {size} particles took {time_taken:.3f} milliseconds")
 
 
 if __name__ == "__main__":
