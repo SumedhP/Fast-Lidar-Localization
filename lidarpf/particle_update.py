@@ -22,6 +22,27 @@ def chassis_odom_update(
     max_height: float,
     max_width: float,
 ) -> None:
+    """
+    Update particle positions using odometry measurements with noise.
+    
+    This function applies odometry updates to all particles, adding Gaussian noise
+    to simulate sensor uncertainty. Particles are constrained to stay within the
+    specified map boundaries, and angles are normalized to [0, 2π).
+    
+    Args:
+        particles: Array of shape (N, 3) containing particle states [x, y, theta].
+                  Modified in-place.
+        odometry: Array of shape (3,) containing odometry deltas [dx, dy, dtheta].
+        noise: Array of shape (3,) containing standard deviations for Gaussian noise
+               [std_x, std_y, std_theta].
+        max_height: Maximum x-coordinate (height) of the map boundary.
+        max_width: Maximum y-coordinate (width) of the map boundary.
+    
+    Note:
+        - All angles are in radians
+        - Particles outside boundaries are clipped to the boundary
+        - Angle normalization uses absolute value and modulo 2π
+    """
     N = particles.shape[0]
 
     x_delta = odometry[X]
@@ -50,8 +71,32 @@ def scan_update(
     lidar_std_dev: float,
 ) -> WeightArray:
     """
+    Update particle weights based on LiDAR scan measurements.
+    
+    This function computes the likelihood of each particle given the current LiDAR scan.
+    For each particle, it projects the LiDAR beams into the occupancy grid and compares
+    the expected distances with the measured distances.
+    
+    Args:
+        particles: Array of shape (N, 3) containing particle states [x, y, theta].
+        scan: Array of shape (num_beams, 2) containing LiDAR measurements [distance, angle].
+              Distances should be in the same units as the occupancy grid.
+        occupancy_grid: 3D array of shape (height, width, angle_bins) containing
+                       expected distances for each grid cell and angle bin.
+        occupancy_grid_index_scalar: Scaling factor to convert particle coordinates
+                                    to grid indices (typically 1/resolution).
+        lidar_std_dev: Standard deviation of LiDAR distance measurements for the
+                      Gaussian likelihood model.
+    
+    Returns:
+        Array of shape (N,) containing normalized particle weights (likelihoods).
+        Weights are normalized to sum to 1.0.
+    
+    Note:
+        - LiDAR scan distances must use the same distance units as the occupancy grid
+        - Angles in the scan are relative to the robot's heading
+        - Grid indices are clipped to valid bounds to handle edge cases
     """
-
     N = particles.shape[0]
     num_beams = scan.shape[0]
 
