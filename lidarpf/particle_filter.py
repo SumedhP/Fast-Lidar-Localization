@@ -12,7 +12,6 @@ import numpy as np
 import numpy.typing as npt
 from numba import njit
 
-from .resample import resample
 from .types import LidarErrorArray, OccupancyGridArray, ParticleArray, WeightArray
 
 

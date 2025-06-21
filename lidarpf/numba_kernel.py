@@ -1,4 +1,5 @@
 import numpy as np
+import numpy.typing as npt
 from numba import njit, prange
 
 from .types import (
@@ -132,3 +133,33 @@ def scan_update(
     likelihoods = likelihoods / (np.sum(likelihoods) + 1e-10)
 
     return likelihoods
+
+
+@njit(parallel=True, cache=True)
+def resample(weights: WeightArray) -> npt.NDArray[np.int32]:
+    """
+    Systematic resampling algorithm based on FilterPy implementation.
+
+    This function implements the systematic resampling algorithm originally
+    from the FilterPy library by Roger Labbe, but wrapped with Numba for performance.
+
+    Original FilterPy source: https://github.com/rlabbe/filterpy
+
+    Args:
+        weights: Array of particle weights for resampling
+
+    Returns:
+        Array of resampled particle indices
+    """
+    N = len(weights)
+    positions = (np.random.random() + np.arange(N)) / N
+    indexes = np.zeros(N, "i")
+    cumulative_sum = np.cumsum(weights)
+    i, j = 0, 0
+    while i < N:
+        if positions[i] < cumulative_sum[j]:
+            indexes[i] = j
+            i += 1
+        else:
+            j += 1
+    return indexes
