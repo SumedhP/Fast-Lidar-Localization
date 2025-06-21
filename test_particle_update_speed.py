@@ -3,7 +3,7 @@ from lidarpf.numba_kernel import chassis_odom_update, scan_update, resample
 import numpy as np
 from timeit import timeit
 
-PARTICLE_SIZES = [100, 100, 1_000, 10_000, 20_000, 100_000]
+PARTICLE_SIZES = [100, 1_000, 5_000, 10_000, 20_000, 100_000]
 
 
 def test_chassis_odom_update(func, print_results=True):
