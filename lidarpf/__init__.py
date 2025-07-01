@@ -5,6 +5,14 @@ A Numba-optimized particle filter implementation for 2D LiDAR-based
 robot localization with systematic resampling.
 """
 
-__version__ = "0.1.0"
-__author__ = "Your Name"
-__email__ = "your.email@example.com"
+from .numba_kernel import (
+    chassis_odom_update,
+    scan_update,
+    resample,
+)
+
+all = [
+    "chassis_odom_update",
+    "scan_update",
+    "resample",
+]
