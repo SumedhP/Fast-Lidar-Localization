@@ -5,7 +5,7 @@ description = "2D LiDAR particle filter for localization on static maps"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "datashader>=0.18.1",
+    "matplotlib>=3.10.3",
     "numba>=0.61.2",
     "numpy>=2.2.6",
 ]

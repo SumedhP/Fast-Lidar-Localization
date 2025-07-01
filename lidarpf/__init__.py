@@ -11,7 +11,7 @@ from .numba_kernel import (
     resample,
 )
 
-all = [
+__all__ = [
     "chassis_odom_update",
     "scan_update",
     "resample",
