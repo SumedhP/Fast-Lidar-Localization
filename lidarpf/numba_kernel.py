@@ -75,7 +75,7 @@ def scan_update_compiled(
     occupancy_grid: OccupancyGridArray,
     occupancy_grid_index_scalar: float,
     lidar_std_dev: float,
-) -> None:
+) -> WeightArray:
     """
     Update particle weights based on LiDAR scan measurements.
 
@@ -132,6 +132,7 @@ def scan_update_compiled(
 
     # Normalize likelihoods
     weights = weights / (np.sum(weights) + 1e-10)
+    return weights.astype(np.float32)
 
 
 @njit(parallel=True, cache=True)
@@ -188,7 +189,7 @@ def scan_update(
     occupancy_grid: OccupancyGridArray,
     occupancy_grid_index_scalar: float,
     lidar_std_dev: float,
-) -> None:
+) -> WeightArray:
     """
     Update particle weights based on LiDAR scan measurements.
     Read the docstring of `scan_update_compiled` for details.
@@ -197,7 +198,7 @@ def scan_update(
     validate_weight_array(weights)
     validate_lidar_scan(scan)
     validate_occupancy_grid(occupancy_grid)
-    scan_update_compiled(particles, weights, scan, occupancy_grid, occupancy_grid_index_scalar, lidar_std_dev)
+    return scan_update_compiled(particles, weights, scan, occupancy_grid, occupancy_grid_index_scalar, lidar_std_dev)
 
 
 def resample(weights: WeightArray) -> npt.NDArray[np.int32]:
