@@ -1,62 +1,85 @@
-# LiDAR Particle Filter Design Doc
+Lidar PF
 
-## Preface
+1) Meant to work with a 2D lidar
+2) Uses a particle filter to track (x, y, theta) of the robot
+3) Expected pose is defined as mean of the particles, weighted by their likelihood
+4) Particles get resampled based on their likelihood
+5) Everything needs to be writtten with Numpy and Numba for speed, this will be run on a Jetson Orin NX
+6) The user will provide a look up table, at no point should we care about the actual map or occupancy grid
 
-### Goal:
-Develop a fast, modular, and extensible localization system that:
-- Accepts a occupancy grid map as an input
-- Integrates real time LiDAR data, with a target device of the LD19 LiDAR
-- Integrates chassis odometry data
-- Performs localization using a particle filter
-- Runs efficient on edge devices, with a target device of a NVIDIA Jetson Orin NX/AGX
+Conventions:
+- Particles will have position in meters and radians
+- Particles cannot have a position less than 0, and cannot exceed map size
+- Particles will have a theta that gets wrapped between 0 and 2pi
+- (0,0) is represnted as the bottom right of the occupancy grid and we follow the FLU convention for XYZ
 
-### Challenges:
-- Handling updates on large amounts of partcles quickly
-- Memory management for particle storage
-- Performing particle likelihood calculations efficiently
+States:
 
-### Assumptions:
-- The occupancy grid map is static (no dynamic obstacles)
-- LiDAR data is on a 2D plane
-- Chassis odometry data is present, with translation in both X and Y axes present
-- Motion model for odometry and LiDAR data is Gaussian
+Particles:
+(N, 3) array for N particles, each with a position and angle. This will be in fp32
+Expected Unit: Meters and radians
 
----
+Weights:
+(N,) array for N particles, each is a fp32 value of it's likelihood
 
-## Protocol
+Occupancy grid:
+(H, W, A) where H is height (X-axis), W is width (y-axis), and A is unique angles (allowing for angle discretization).
+The expected size of this occupancy grid is (1200, 800, 120), where we have cm precision across a 12m x 8m field, and bin every 
+3 degrees into 1 bucket. The CDDT paper showed no loss in accuracy through this metric
+Expected Unit: Centimeters and radians
 
-### State
-#### Particle:
-X, Y, Theta representing the position and orientation of the particle in the map.
-X is defined as positive upwards, Y is defined as positive to the right, and Theta is defined as positive counter-clockwise.
-(0, 0, 0) is the origin of the map, located in the bottom right corner.
+LiDAR error probabilty:
+(2 * max_range * precision, ) array for 1D lidar error. This is defiend as the probability that a given amount of error between
+expected measurement and actual measurement occurs. Since the LD19 has a maximum range of 12m, this would be a 24 * precision array.
+Since our precision increment we'd want is in cm, this would be a 2400 fp32 array that gets generated
+Expected Unit: Centimeters for index, probability for value
 
-Each particle also has a weight, which is used to determine the likelihood of the particle being the true state of the robot.
+LiDAR scan:
+(N, 2) array for N LiDAR scans, each with a distance and angle. This is in fp32
+Expected Unit: Meters and radians
 
-#### Lidar Ray:
-(Distance, Angle) representing the distance and angle of the LiDAR ray from the robot's position.
+How we're doing this:
 
-#### Lidar Scan:
-A list of Lidar Rays representing a single scan from the LiDAR sensor.
+Resampling particles:
+- Particles are resampled based on Systemic resampling algorithm. Particles that are more likely to be the true pose of the robot
+will have a higher chance of being selected in the next iteration. This is using FilterPy's implementation, but wrapped in numba
+for a 50x speed up.
 
-#### Occupancy Grid Map:
-A 2D grid representing the environment, where each cell can be occupied or free.
+Particle odometry update:
+- Particles get updated with an delta X, Y, and theta all in world frame. Each particle also gets added some noise in measurement
+across x, y, and theta
 
-#### Particle Distance Lookup Table:
-A precomputed table that maps for each position in the occupancy grid map, the expected distance to the nearest occupied cell. 
-This is used to speed up the likelihood calculation for each particle by avoiding real-time ray casting.
+LiDAR update:
+- Generate the set of expected distance readings given the particles theta and the new angle for each scan
+- Get these expected distances by converting the particles position into the LUT position (by LUT scalar)
+- Get angle that falls into bin
+- After getting expected distance, subtract expected - measured to get error, and put that into the error table to get likelihood
+- Particle probabilty is those liklihoods multiplied across all scan readings
 
-This approach is inspired by the findings in:
+Classes:
 
-> **CDDT: Fast Approximate 2D Ray Casting for Accelerated Localization**  
-> Corey Walsh and Sertac Karaman. *arXiv preprint arXiv:1705.01167*, 2017.  
-> [https://arxiv.org/abs/1705.01167](https://arxiv.org/abs/1705.01167)
+Particle filter class:
 
-### Classes
+On creation:
+- Take in LUT for expected distances, LiDAR std dev, LiDAR max range, number of particles
+- Scalar between LUT and particle position
+- Scalar for error table
+- weight is None
 
-#### `ParticleFilter`
-- State: `particles`, `weights`, `map`, `lidar_distance_lookup_table`
-- Initialized with:
-  - `map`: Occupancy grid map
-  - `lidar_distance_lookup_table`: Precomputed distance lookup table
-  - `num_particles`: Number of particles to maintain
+Initialize (start X, start y, start theta, position_std_dev, angle_std_dev):
+- Creates particles with a uniform distribution across the map, with a std dev in position and angle
+- Creates weights with a uniform distribution across all particles (1/N)
+
+odometry_update(delta_x, delta_y, delta_theta, x_std_dev, y_std_dev, theta_std_dev):
+- Updates each particle with the delta x, y, and theta in world frame
+- Adds noise to each particle based on the std devs provided
+
+lidar_update(lidar_scan):
+- For each particle, gets the expected distance reading based on the LUT and the particle's theta
+- For each expected distance, gets the error between expected and measured
+- Gets the likelihood of that error from the error table
+- Multiplies the likelihoods across all scans to get the particle's probability
+
+resample_particles():
+- Uses the systemic resampling algorithm to resample particles based on their likelihoods
+
