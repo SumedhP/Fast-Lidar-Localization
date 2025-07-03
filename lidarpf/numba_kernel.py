@@ -62,22 +62,16 @@ def chassis_odom_update_compiled(
     random_noise_y = np.random.normal(0, y_std, N)
 
     for i in prange(N):  # type: ignore[not-iterable]
+        # Add movement and noise to each particle
         particles[i, X] += x_delta + random_noise_x[i]
         particles[i, Y] += y_delta + random_noise_y[i]
 
-        # Clip to boundaries
-        if particles[i, X] < 0:
-            particles[i, X] = 0
-        elif particles[i, X] > max_height:
-            particles[i, X] = max_height
-
-        if particles[i, Y] < 0:
-            particles[i, Y] = 0
-        elif particles[i, Y] > max_width:
-            particles[i, Y] = max_width
+        # Clip particles to the map boundaries
+        particles[i, X] = max(0, min(particles[i, X], max_height))
+        particles[i, Y] = max(0, min(particles[i, Y], max_width))
 
 
-@njit(parallel=True, cache=True)
+@njit(parallel=True, cache=True, fastmath=True)
 def scan_update_compiled(
     particles: ParticleArray,
     weights: WeightArray,
@@ -113,32 +107,34 @@ def scan_update_compiled(
         - Angles in the scan are relative to the robot's heading
         - Grid indices are clipped to valid bounds to handle edge cases
     """
-    # Note for a developer: Vectorizing this just made it slower with Numba.
     N = particles.shape[0]
     num_beams = scan.shape[0]
+    H, W, A = occupancy_grid.shape
+    angle_bin_scalar = A / (2 * np.pi)
+    inverse_lidar_variance = 1.0 / (lidar_std_dev**2)
 
     # Iterate over each particle and compute the likelihood based on the scan
     for i in prange(N):  # type: ignore[not-iterable]
         particle = particles[i]
         x, y = particle[X], particle[Y]
-
         x_idx = int(x * occupancy_grid_index_scalar)
         y_idx = int(y * occupancy_grid_index_scalar)
-        x_idx = max(0, min(x_idx, occupancy_grid.shape[0] - 1))
-        y_idx = max(0, min(y_idx, occupancy_grid.shape[1] - 1))
+        x_idx = max(0, min(x_idx, H - 1))
+        y_idx = max(0, min(y_idx, W - 1))
 
         # Compute probability of each measurement in the scan
+        log_likelihood = 0.0
         for j in range(num_beams):
             distance, angle = scan[j]
 
-            angle_idx = int(angle / (2 * np.pi) * occupancy_grid.shape[2])
-            angle_idx = max(0, min(angle_idx, occupancy_grid.shape[2] - 1))
+            angle_idx = int(angle * angle_bin_scalar)
+            angle_idx = max(0, min(angle_idx, A - 1))
 
             expected_distance = occupancy_grid[x_idx, y_idx, angle_idx]
             diff = distance - expected_distance
-            likelihood = np.exp(-0.5 * (diff**2) / (lidar_std_dev**2))
+            log_likelihood += -0.5 * (diff**2) * inverse_lidar_variance
 
-            weights[i] *= likelihood
+        weights[i] *= np.exp(log_likelihood)
 
     # Normalize likelihoods
     weights = weights / (np.sum(weights) + 1e-10)
