@@ -48,9 +48,7 @@ def chassis_odom_update_compiled(
         max_width: Maximum y-coordinate (width) of the map boundary.
 
     Note:
-        - All angles are in radians
         - Particles outside boundaries are clipped to the boundary
-        - Angle normalization uses absolute value and modulo 2π
     """
     N = particles.shape[0]
 
@@ -60,11 +58,23 @@ def chassis_odom_update_compiled(
     x_std = noise[X]
     y_std = noise[Y]
 
-    particles[:, X] += x_delta + np.random.normal(0, x_std, N)
-    particles[:, Y] += y_delta + np.random.normal(0, y_std, N)
+    random_noise_x = np.random.normal(0, x_std, N)
+    random_noise_y = np.random.normal(0, y_std, N)
 
-    np.clip(particles[:, X], 0, max_height, out=particles[:, X])
-    np.clip(particles[:, Y], 0, max_width, out=particles[:, Y])
+    for i in prange(N):  # type: ignore[not-iterable]
+        particles[i, X] += x_delta + random_noise_x[i]
+        particles[i, Y] += y_delta + random_noise_y[i]
+
+        # Clip to boundaries
+        if particles[i, X] < 0:
+            particles[i, X] = 0
+        elif particles[i, X] > max_height:
+            particles[i, X] = max_height
+
+        if particles[i, Y] < 0:
+            particles[i, Y] = 0
+        elif particles[i, Y] > max_width:
+            particles[i, Y] = max_width
 
 
 @njit(parallel=True, cache=True)
@@ -171,14 +181,16 @@ def chassis_odom_update(
     noise: OdomNoiseArray,
     max_height: float,
     max_width: float,
+    validate_input: bool = True,
 ) -> None:
     """
     Update particle positions using odometry measurements with noise.
     Read the docstring of `chassis_odom_update_compiled` for details.
     """
-    validate_particle_array(particles)
-    validate_odometry_update(odometry)
-    validate_odometry_noise(noise)
+    if validate_input:
+        validate_particle_array(particles)
+        validate_odometry_update(odometry)
+        validate_odometry_noise(noise)
     chassis_odom_update_compiled(particles, odometry, noise, max_height, max_width)
 
 
@@ -189,22 +201,25 @@ def scan_update(
     occupancy_grid: OccupancyGridArray,
     occupancy_grid_index_scalar: float,
     lidar_std_dev: float,
+    validate_input: bool = True,
 ) -> WeightArray:
     """
     Update particle weights based on LiDAR scan measurements.
     Read the docstring of `scan_update_compiled` for details.
     """
-    validate_particle_array(particles)
-    validate_weight_array(weights)
-    validate_lidar_scan(scan)
-    validate_occupancy_grid(occupancy_grid)
+    if validate_input:
+        validate_particle_array(particles)
+        validate_weight_array(weights)
+        validate_lidar_scan(scan)
+        validate_occupancy_grid(occupancy_grid)
     return scan_update_compiled(particles, weights, scan, occupancy_grid, occupancy_grid_index_scalar, lidar_std_dev)
 
 
-def resample(weights: WeightArray) -> npt.NDArray[np.int32]:
+def resample(weights: WeightArray, validate_input: bool = True) -> npt.NDArray[np.int32]:
     """
     Resample particles based on their weights using systematic resampling.
     Read the docstring of `resample_compiled` for details.
     """
-    validate_weight_array(weights)
+    if validate_input:
+        validate_weight_array(weights)
     return resample_compiled(weights)

@@ -8,6 +8,7 @@ import numpy as np
 from timeit import timeit
 
 PARTICLE_SIZES = [100, 100, 1_000, 5_000, 10_000, 20_000, 100_000]
+# PARTICLE_SIZES = [100, 100, 1_000, 5_000, 10_000, 20_000, 100_000, 1_000_000]
 
 
 def test_chassis_odom_update(func, print_results=True):
@@ -28,11 +29,12 @@ def test_chassis_odom_update(func, print_results=True):
 def test_scan_update(func, print_results=True):
     for size in PARTICLE_SIZES:
         particles = np.random.rand(size, 2).astype(np.float32) * 100.0
+        weights = np.random.rand(size).astype(np.float32)
         scan = np.random.rand(12, 2).astype(np.float32) * 10
         occupancy_grid = np.random.rand(1200, 800, 120).astype(np.float32)
         ITERATIONS = 10000
         time_taken = (
-            timeit(lambda: func(particles, scan, occupancy_grid, 100, 5), number=ITERATIONS) / ITERATIONS * 1000
+            timeit(lambda: func(particles, weights, scan, occupancy_grid, 100, 5), number=ITERATIONS) / ITERATIONS * 1000
         )
         if print_results:
             print(f"{func.__name__} with {size} particles took {time_taken:.3f} milliseconds")
