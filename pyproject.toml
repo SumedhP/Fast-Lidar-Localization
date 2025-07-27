@@ -6,6 +6,8 @@ readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
     "cupy-cuda12x>=13.5.1",
+    "matplotlib>=3.10.3",
+    "numba>=0.61.2",
     "numpy>=2.2.6",
 ]
 
@@ -15,3 +17,6 @@ cuda-mcl = "cuda_mcl:main"
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[tool.ruff]
+line-length = 120
